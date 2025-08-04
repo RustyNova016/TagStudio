@@ -5,7 +5,7 @@
 from datetime import datetime as dt
 from pathlib import Path
 
-from sqlalchemy import JSON, ForeignKey, ForeignKeyConstraint, Integer, event
+from sqlalchemy import JSON, ForeignKey, ForeignKeyConstraint, Integer, event, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from tagstudio.core.constants import TAG_ARCHIVED, TAG_FAVORITE
@@ -43,6 +43,8 @@ class TagAlias(Base):
     name: Mapped[str] = mapped_column(nullable=False)
     tag_id: Mapped[int] = mapped_column(ForeignKey("tags.id"))
     tag: Mapped["Tag"] = relationship(back_populates="aliases")
+
+    __table_args__ = (UniqueConstraint("name", "tag_id", name="unique_alias"),)
 
     def __init__(self, name: str, tag_id: int | None = None):
         self.name = name

@@ -482,7 +482,9 @@ class Library:
                 if db_version < 8:
                     self.apply_db8_schema_changes(session)
                 if db_version < 9:
-                    self.apply_db9_schema_changes(session)
+                    self.apply_db9_schema_changes(session)           
+                if db_version < 10:
+                    self.apply_db10_schema_changes(session)
 
                 # now the data changes
                 if db_version == 6:
@@ -615,6 +617,30 @@ class Library:
             session.merge(entry).filename = entry.path.name
         session.commit()
         logger.info("[Library][Migration] Populated filename column in entries table")
+
+    def apply_db10_schema_changes(self, session: Session):
+        """Apply database schema changes introduced in DB_VERSION 10."""
+        #
+        # The changes for this migration are
+        #   - Added unique constraint on tag_aliases to avoid duplicated alias for the same tag
+        #
+
+        tag_alias_uniqueness = text(
+            "CREATE UNIQUE INDEX `idx_tag_aliases` ON `tag_aliases` (`name`, `tag_id`);"
+        )
+        try:
+            session.execute(tag_alias_uniqueness)
+            session.commit()
+            logger.info(
+                "[Library][Migration] Added unique index `idx_tag_aliases` on `tag_aliases`"
+            )
+        except Exception as e:
+            logger.error(
+                "[Library][Migration] Could not create unique index " \
+                "`idx_tag_aliases` on `tag_aliases`",
+                error=e,
+            )
+            session.rollback()
 
     @property
     def default_fields(self) -> list[BaseField]:
